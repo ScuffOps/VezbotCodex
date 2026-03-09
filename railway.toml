@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install --frozen-lockfile && pnpm db:generate && pnpm build"
+
+[deploy]
+startCommand = "pnpm db:migrate:deploy && pnpm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5

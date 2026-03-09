@@ -1,0 +1,22 @@
+{
+  "name": "vezbotcodex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade Discord bot platform — monorepo",
+  "scripts": {
+    "dev": "pnpm --filter bot dev",
+    "build": "pnpm --filter @vezbot/config build && pnpm --filter @vezbot/shared build && pnpm --filter @vezbot/database build && pnpm --filter @vezbot/discord build && pnpm --filter bot build",
+    "start": "pnpm --filter bot start",
+    "lint": "tsc --noEmit",
+    "db:generate": "pnpm --filter @vezbot/database db:generate",
+    "db:migrate:dev": "pnpm --filter @vezbot/database db:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @vezbot/database db:migrate:deploy",
+    "db:push": "pnpm --filter @vezbot/database db:push",
+    "db:studio": "pnpm --filter @vezbot/database db:studio",
+    "register-commands": "pnpm --filter bot register-commands"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

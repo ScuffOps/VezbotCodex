@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════
+// Guild Configuration
+// ═══════════════════════════════════════
+
+model GuildConfig {
+  id      String @id @default(cuid())
+  guildId String @unique @map("guild_id")
+
+  // Feature toggles
+  ticketsEnabled      Boolean @default(false) @map("tickets_enabled")
+  moderationEnabled   Boolean @default(true) @map("moderation_enabled")
+  roleMenusEnabled    Boolean @default(false) @map("role_menus_enabled")
+  loggingEnabled      Boolean @default(false) @map("logging_enabled")
+  onboardingEnabled   Boolean @default(false) @map("onboarding_enabled")
+  integrationsEnabled Boolean @default(false) @map("integrations_enabled")
+
+  // Channel references (Discord snowflake IDs)
+  logChannelId        String? @map("log_channel_id")
+  modLogChannelId     String? @map("mod_log_channel_id")
+  ticketCategoryId    String? @map("ticket_category_id")
+  ticketLogChannelId  String? @map("ticket_log_channel_id")
+  welcomeChannelId    String? @map("welcome_channel_id")
+
+  // Role references
+  modRoleId   String? @map("mod_role_id")
+  adminRoleId String? @map("admin_role_id")
+  muteRoleId  String? @map("mute_role_id")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tickets          Ticket[]
+  moderationCases  ModerationCase[]
+  roleMenus        RoleMenu[]
+  integrationConfigs IntegrationConfig[]
+  scheduledEvents  ScheduledEvent[]
+
+  @@map("guild_configs")
+}
+
+// ═══════════════════════════════════════
+// Tickets
+// ═══════════════════════════════════════
+
+model Ticket {
+  id       String @id @default(cuid())
+  guildId  String @map("guild_id")
+  ticketNumber Int @map("ticket_number")
+
+  // Discord references
+  channelId String @unique @map("channel_id")
+  creatorId String @map("creator_id")
+
+  // State
+  status    String @default("OPEN") // OPEN, CLOSED, ARCHIVED
+  subject   String?
+  closedBy  String? @map("closed_by")
+  closeReason String? @map("close_reason")
+
+  // Staff assigned
+  claimedBy String? @map("claimed_by")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  closedAt  DateTime? @map("closed_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Transcript data (stored as JSON for flexibility)
+  transcript String? @db.Text
+
+  // Relations
+  guild GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, ticketNumber])
+  @@index([guildId, status])
+  @@index([creatorId])
+  @@map("tickets")
+}
+
+// ═══════════════════════════════════════
+// Moderation Cases
+// ═══════════════════════════════════════
+
+model ModerationCase {
+  id          String @id @default(cuid())
+  guildId     String @map("guild_id")
+  caseNumber  Int    @map("case_number")
+
+  // Who and what
+  targetId    String @map("target_id")    // User who was actioned
+  moderatorId String @map("moderator_id") // Staff who performed action
+  type        String // WARNING, TIMEOUT, KICK, BAN, UNBAN, NOTE
+
+  // Details
+  reason       String?
+  duration     Int?     // Duration in seconds (for timeouts)
+  evidence     String?  @db.Text
+
+  // Discord message reference (for editing/updating)
+  logMessageId String? @map("log_message_id")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime? @map("expires_at")
+
+  // Relations
+  guild GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, caseNumber])
+  @@index([guildId, targetId])
+  @@index([guildId, moderatorId])
+  @@map("moderation_cases")
+}
+
+// ═══════════════════════════════════════
+// Role Menus
+// ═══════════════════════════════════════
+
+model RoleMenu {
+  id      String @id @default(cuid())
+  guildId String @map("guild_id")
+
+  // Display
+  title       String
+  description String? @db.Text
+
+  // Discord references
+  channelId String @map("channel_id")
+  messageId String? @map("message_id") // Set after the menu message is sent
+
+  // Config
+  maxSelections Int @default(0) @map("max_selections") // 0 = unlimited
+  exclusive     Boolean @default(false) // If true, selecting one removes others
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  guild   GuildConfig    @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  options RoleMenuOption[]
+
+  @@index([guildId])
+  @@map("role_menus")
+}
+
+model RoleMenuOption {
+  id         String @id @default(cuid())
+  roleMenuId String @map("role_menu_id")
+
+  roleId      String  @map("role_id") // Discord role snowflake
+  label       String
+  description String?
+  emoji       String? // Unicode emoji or custom emoji string
+
+  // Ordering
+  position Int @default(0)
+
+  // Relations
+  roleMenu RoleMenu @relation(fields: [roleMenuId], references: [id], onDelete: Cascade)
+
+  @@index([roleMenuId])
+  @@map("role_menu_options")
+}
+
+// ═══════════════════════════════════════
+// Reminders & Scheduled Events
+// ═══════════════════════════════════════
+
+model Reminder {
+  id      String @id @default(cuid())
+  userId  String @map("user_id")
+  guildId String? @map("guild_id") // null = DM reminder
+
+  // Content
+  message   String
+  channelId String? @map("channel_id") // Where to send the reminder
+
+  // Scheduling (stored in UTC, timezone for display)
+  remindAt  DateTime @map("remind_at")
+  timezone  String   @default("UTC")
+
+  // State
+  sent      Boolean @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sent, remindAt])
+  @@index([userId])
+  @@map("reminders")
+}
+
+model ScheduledEvent {
+  id      String @id @default(cuid())
+  guildId String @map("guild_id")
+
+  // Event info
+  title       String
+  description String? @db.Text
+  creatorId   String  @map("creator_id")
+
+  // Scheduling (UTC storage)
+  startsAt DateTime @map("starts_at")
+  endsAt   DateTime? @map("ends_at")
+  timezone String   @default("UTC")
+
+  // Discord references
+  channelId    String? @map("channel_id")
+  discordEventId String? @map("discord_event_id") // Linked guild scheduled event
+
+  // State
+  active    Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  guild GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, active])
+  @@map("scheduled_events")
+}
+
+// ═══════════════════════════════════════
+// Integration Configs
+// ═══════════════════════════════════════
+
+model IntegrationConfig {
+  id       String @id @default(cuid())
+  guildId  String @map("guild_id")
+  provider String // twitch, youtube, twitter, tiktok, google_calendar
+
+  // State
+  enabled  Boolean @default(false)
+
+  // Provider-specific config stored as JSON
+  config   String? @db.Text // JSON stringified
+
+  // Notification channel
+  notifyChannelId String? @map("notify_channel_id")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  guild GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, provider])
+  @@map("integration_configs")
+}
