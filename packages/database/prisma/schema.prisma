@@ -43,6 +43,8 @@ model GuildConfig {
   tickets          Ticket[]
   moderationCases  ModerationCase[]
   roleMenus        RoleMenu[]
+  embedTemplates   EmbedTemplate[]
+  polls            Poll[]
   integrationConfigs IntegrationConfig[]
   scheduledEvents  ScheduledEvent[]
 
@@ -257,4 +259,62 @@ model IntegrationConfig {
 
   @@unique([guildId, provider])
   @@map("integration_configs")
+}
+
+// =======================================
+// Embed Templates
+// =======================================
+
+model EmbedTemplate {
+  id      String @id @default(cuid())
+  guildId String @map("guild_id")
+
+  name        String
+  content     String? @map("content") @db.Text
+  title       String
+  description String? @db.Text
+  colorHex    String? @map("color_hex")
+  footerText  String? @map("footer_text")
+  channelId   String? @map("channel_id")
+  imageUrl    String? @map("image_url")
+  thumbnailUrl String? @map("thumbnail_url")
+  componentsV2Enabled Boolean @default(false) @map("components_v2_enabled")
+  componentsJson      String? @map("components_json") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  guild GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, name])
+  @@index([guildId, updatedAt])
+  @@map("embed_templates")
+}
+
+// =======================================
+// Polls
+// =======================================
+
+model Poll {
+  id      String @id @default(cuid())
+  guildId String @map("guild_id")
+
+  question    String
+  optionsJson String  @map("options_json") @db.Text
+  status      String  @default("DRAFT") // DRAFT, ACTIVE, CLOSED
+  channelId   String? @map("channel_id")
+  messageId   String? @map("message_id")
+  allowMulti  Boolean @default(false) @map("allow_multi")
+  anonymous   Boolean @default(false)
+  creatorId   String  @map("creator_id")
+  closesAt    DateTime? @map("closes_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  guild GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, status])
+  @@index([guildId, createdAt])
+  @@map("polls")
 }

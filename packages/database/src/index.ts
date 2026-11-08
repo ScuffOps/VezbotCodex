@@ -8,6 +8,8 @@ export type {
   ModerationCase,
   RoleMenu,
   RoleMenuOption,
+  EmbedTemplate,
+  Poll,
   Reminder,
   ScheduledEvent,
   IntegrationConfig,

@@ -1,8 +1,13 @@
 [build]
-builder = "nixpacks"
-buildCommand = "pnpm install --frozen-lockfile && pnpm db:generate && pnpm build"
+builder = "RAILPACK"
+buildCommand = "if [ \"$RAILWAY_SERVICE_NAME\" = \"VezbotDashboard\" ]; then pnpm dashboard:build; else pnpm db:generate && pnpm build; fi"
 
 [deploy]
-startCommand = "pnpm db:migrate:deploy && pnpm start"
+preDeployCommand = [
+  "pnpm db:migrate:deploy",
+]
+startCommand = "if [ \"$RAILWAY_SERVICE_NAME\" = \"VezbotDashboard\" ]; then pnpm dashboard:start; else pnpm start; fi"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
