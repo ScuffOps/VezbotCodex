@@ -10,7 +10,17 @@ const DISCORD_API_BASE = "https://discord.com/api/v10";
 const MANAGE_GUILD = BigInt(0x20);
 const ADMINISTRATOR = BigInt(0x8);
 
-async function fetchDiscordJson<T>(path: string, accessToken: string): Promise<T | null> {
+export class DiscordGuildFetchError extends Error {
+  constructor(public readonly status: number) {
+    super("Discord server list is temporarily unavailable.");
+  }
+}
+
+// Briefly share successful lookups across picker, layouts, and pages.
+// Credentials never become persistent cache keys or stored cache values.
+const guildLookups = new Map<string, { expiresAt: number; promise: Promise<DiscordGuild[]> }>();
+
+async function fetchDiscordJson<T>(path: string, accessToken: string): Promise<T> {
   const response = await fetch(`${DISCORD_API_BASE}${path}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -20,7 +30,7 @@ async function fetchDiscordJson<T>(path: string, accessToken: string): Promise<T
 
   if (!response.ok) {
     console.error(`Discord API request failed for ${path}:`, response.status);
-    return null;
+    throw new DiscordGuildFetchError(response.status);
   }
 
   return response.json() as Promise<T>;
@@ -32,15 +42,27 @@ export function hasDashboardAccess(permissions: string): boolean {
 }
 
 export async function getManageableGuilds(accessToken: string): Promise<DiscordGuild[]> {
-  const guilds = await fetchDiscordJson<DiscordGuild[]>("/users/@me/guilds", accessToken);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(accessToken));
+  const key = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+  const cached = guildLookups.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.promise;
 
-  if (!guilds) {
-    return [];
+  for (const [cacheKey, entry] of Array.from(guildLookups)) {
+    if (entry.expiresAt <= Date.now()) guildLookups.delete(cacheKey);
   }
+  if (guildLookups.size >= 100) guildLookups.delete(guildLookups.keys().next().value!);
 
-  return guilds
-    .filter((guild) => hasDashboardAccess(guild.permissions))
-    .sort((left, right) => left.name.localeCompare(right.name));
+  const promise = fetchDiscordJson<DiscordGuild[]>("/users/@me/guilds", accessToken)
+    .then((guilds) => guilds
+      .filter((guild) => hasDashboardAccess(guild.permissions))
+      .sort((left, right) => left.name.localeCompare(right.name)));
+  guildLookups.set(key, { expiresAt: Date.now() + 30_000, promise });
+  try {
+    return await promise;
+  } catch (error) {
+    if (guildLookups.get(key)?.promise === promise) guildLookups.delete(key);
+    throw error;
+  }
 }
 
 export async function getManageableGuild(accessToken: string, guildId: string): Promise<DiscordGuild | null> {

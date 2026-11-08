@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { getManageableGuild } from "@/lib/discord";
+import { DiscordGuildFetchError, getManageableGuild } from "@/lib/discord";
 
 export async function requireDashboardSession() {
   const session = await getServerSession(authOptions);
@@ -19,7 +19,10 @@ export async function requireDashboardSession() {
 
 export async function requireManageableGuildAccess(guildId: string) {
   const session = await requireDashboardSession();
-  const guild = await getManageableGuild(session.accessToken, guildId);
+  const guild = await getManageableGuild(session.accessToken, guildId).catch((error: unknown) => {
+    if (error instanceof DiscordGuildFetchError) redirect("/guilds");
+    throw error;
+  });
 
   if (!guild) {
     redirect("/guilds");

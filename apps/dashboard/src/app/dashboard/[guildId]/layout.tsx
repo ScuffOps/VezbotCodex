@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
-import { getGuildIconUrl, getManageableGuild } from '@/lib/discord';
-import { requireDashboardSession } from '@/lib/dashboard-auth';
+import { getGuildIconUrl } from '@/lib/discord';
+import { requireManageableGuildAccess } from '@/lib/dashboard-auth';
 import { DashboardNav } from './nav';
 
 export default async function DashboardLayout({
@@ -10,13 +9,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
   params: { guildId: string };
 }) {
-  const session = await requireDashboardSession();
-
-  const guild = await getManageableGuild(session.accessToken, params.guildId);
-
-  if (!guild) {
-    redirect('/guilds');
-  }
+  const { guild } = await requireManageableGuildAccess(params.guildId);
 
   return (
     <div className="min-h-screen flex">
