@@ -20,9 +20,9 @@ export const Colors = {
 
 /** Bot identity */
 export const Bot = {
-  Name: "Vezbot",
+  Name: "Vezbot_FIN",
   /** Footer text for embeds */
-  Footer: "Vezbot • Community Platform",
+  Footer: "Vezbot_FIN • Community Platform",
   /** Invite permission integer — Administrator not included deliberately */
   InvitePermissions: "1512671469638",
 } as const;

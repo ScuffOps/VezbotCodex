@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@vezbot/database';
 import { requireManageableGuildAccess } from '@/lib/dashboard-auth';
 import { normalizeSnowflakeInput } from '@/lib/dashboard-data';
+import { parseSchedule, validateTimezone } from '@vezbot/shared';
 
 function normalizeText(formData: FormData, field: string) {
   const raw = formData.get(field);
@@ -20,23 +21,20 @@ export async function createReminderAction(guildId: string, formData: FormData) 
     const userId = normalizeSnowflakeInput(formData, 'userId');
     const channelId = normalizeSnowflakeInput(formData, 'channelId');
     const message = normalizeText(formData, 'message');
-    const timezone = normalizeText(formData, 'timezone') ?? 'UTC';
+    const timezone = validateTimezone(normalizeText(formData, 'timezone') ?? 'UTC');
     const remindAtRaw = normalizeText(formData, 'remindAt');
 
     if (!userId || !message || !remindAtRaw) {
       redirect(`/dashboard/${guildId}/reminders?error=invalid_payload`);
     }
-    if (message.length > 2000) {
+    if (message.length > 1800) {
       redirect(`/dashboard/${guildId}/reminders?error=invalid_payload`);
     }
     if (timezone.length > 80) {
       redirect(`/dashboard/${guildId}/reminders?error=invalid_payload`);
     }
 
-    const remindAt = new Date(remindAtRaw);
-    if (Number.isNaN(remindAt.getTime()) || remindAt.getTime() <= Date.now()) {
-      redirect(`/dashboard/${guildId}/reminders?error=invalid_payload`);
-    }
+    const remindAt = parseSchedule(remindAtRaw, timezone);
 
     await prisma.reminder.create({
       data: {
@@ -67,8 +65,8 @@ export async function setReminderSentAction(guildId: string, formData: FormData)
   }
 
   const updated = await prisma.reminder.updateMany({
-    where: { id: reminderId, guildId },
-    data: { sent: sentValue === 'true' },
+    where: { id: reminderId, guildId, claimedAt: null, ...(sentValue === 'false' ? { remindAt: { gt: new Date() } } : {}) },
+    data: { sent: sentValue === 'true', attempts: 0, lastError: null },
   });
 
   if (updated.count === 0) {

@@ -15,6 +15,7 @@ import {
   TicketCreateForm,
   TicketCloseForm,
   ReportForm,
+  ModApplicationForm,
   ticketCreateSchema,
   reportSchema,
   successEmbed,
@@ -24,16 +25,39 @@ import type { BotClient } from "../lib/client";
 import { createTicket, closeTicket } from "../services/ticket.service";
 import { toggleRole } from "../services/role.service";
 import { sendLogEmbed } from "../services/logging.service";
+import { prisma } from "@vezbot/database";
 
 export const name = Events.InteractionCreate;
 
 export async function execute(interaction: Interaction): Promise<void> {
   try {
     if (interaction.isChatInputCommand()) {
+      logger.info({
+        interactionType: "chat-input",
+        command: interaction.commandName,
+        commandId: interaction.commandId,
+        applicationId: interaction.applicationId,
+        guildId: interaction.guildId,
+        user: interaction.user.tag,
+      }, "Received chat input interaction");
       await handleCommand(interaction);
     } else if (interaction.isButton()) {
+      logger.info({
+        interactionType: "button",
+        customId: interaction.customId,
+        applicationId: interaction.applicationId,
+        guildId: interaction.guildId,
+        user: interaction.user.tag,
+      }, "Received button interaction");
       await handleButton(interaction);
     } else if (interaction.isModalSubmit()) {
+      logger.info({
+        interactionType: "modal-submit",
+        customId: interaction.customId,
+        applicationId: interaction.applicationId,
+        guildId: interaction.guildId,
+        user: interaction.user.tag,
+      }, "Received modal interaction");
       await handleModal(interaction);
     }
   } catch (error) {
@@ -64,6 +88,15 @@ async function handleCommand(interaction: ChatInputCommandInteraction): Promise<
 
   if (!command) {
     logger.warn({ command: interaction.commandName }, "Unknown command received");
+    await safeReply(interaction, {
+      embeds: [
+        errorEmbed(
+          "Unknown command",
+          "This command is not available on the current bot build. Try /ping, /setup, /setup-tickets, /setup-roles, or /server-config view."
+        ),
+      ],
+      ephemeral: true,
+    });
     return;
   }
 
@@ -86,6 +119,15 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
     const roleId = customId.split(":")[1];
     if (!roleId || !interaction.guild) return;
 
+    const configuredMenu = await prisma.roleMenu.findFirst({
+      where: { guildId: interaction.guild.id, messageId: interaction.message.id, channelId: interaction.channelId, options: { some: { roleId } } },
+      select: { id: true },
+    });
+    if (!configuredMenu) {
+      await interaction.reply({ content: "This role button is not part of an active saved role menu.", ephemeral: true });
+      return;
+    }
+
     const member = interaction.member as GuildMember;
     const result = await toggleRole(interaction.guild, member, roleId);
 
@@ -105,6 +147,16 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
         ephemeral: true,
       });
     }
+    return;
+  }
+
+  // Ticket close buttons: ticket-close:{channelId}
+  if (customId.startsWith("ticket-create:")) {
+    if (!interaction.guild) return;
+
+    const { buildModal } = await import("@vezbot/discord");
+    const modal = buildModal(TicketCreateForm, interaction.guild.id);
+    await interaction.showModal(modal);
     return;
   }
 
@@ -227,6 +279,43 @@ async function handleModal(interaction: ModalSubmitInteraction): Promise<void> {
           successEmbed(
             "Report Submitted",
             "Your report has been sent to the moderation team. Thank you for helping keep this community safe."
+          ),
+        ],
+        ephemeral: true,
+      });
+      break;
+    }
+
+    case "mod-application": {
+      if (!interaction.guild) return;
+
+      const values = extractFormValues(interaction, ModApplicationForm.fields);
+      const experience = values["experience"]?.trim();
+      const availability = values["availability"]?.trim();
+      const motivation = values["motivation"]?.trim();
+
+      if (!experience || !availability || !motivation) {
+        await interaction.reply({
+          embeds: [errorEmbed("Invalid Application", "Please complete all moderator application fields.")],
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const applicationEmbed = modEmbed("Moderator Application Received", [
+        `**Applicant:** ${interaction.user} (${interaction.user.tag})`,
+        `**Experience:** ${experience}`,
+        `**Availability:** ${availability}`,
+        `**Motivation:** ${motivation}`,
+      ].join("\n"));
+
+      await sendLogEmbed(interaction.guild.id, "moderation", applicationEmbed);
+
+      await interaction.reply({
+        embeds: [
+          successEmbed(
+            "Application Submitted",
+            "Your moderator application has been sent to staff for review."
           ),
         ],
         ephemeral: true,

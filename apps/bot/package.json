@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "test": "node --test tests/*.test.cjs",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "register-commands": "tsx src/lib/register-commands.ts"

@@ -3,7 +3,9 @@ import { prisma } from "@vezbot/database";
 import { logger } from "@vezbot/discord";
 import { createBotClient } from "./lib/client";
 import { loadCommands, loadEvents } from "./lib/command-loader";
+import { startControlApiServer } from "./lib/control-api";
 import { setLoggingClient } from "./services/logging.service";
+import { startScheduler } from "./services/scheduler.service";
 
 async function main() {
   logger.info("╔══════════════════════════════════════════╗");
@@ -21,6 +23,8 @@ async function main() {
 
   // 2. Create Discord client
   const client = createBotClient();
+  const controlApiServer = startControlApiServer(client);
+  const stopScheduler = startScheduler(client);
 
   // 3. Register client with logging service (avoids circular imports)
   setLoggingClient(client);
@@ -41,6 +45,8 @@ async function main() {
   // 5. Graceful shutdown
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Shutting down gracefully...`);
+    controlApiServer.close();
+    stopScheduler();
     client.destroy();
     await prisma.$disconnect();
     logger.info("Shutdown complete.");

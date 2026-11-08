@@ -7,7 +7,7 @@
     "dev": "corepack pnpm --filter bot dev",
     "dashboard:dev": "corepack pnpm --filter dashboard dev",
     "build": "corepack pnpm --filter @vezbot/config build && corepack pnpm --filter @vezbot/shared build && corepack pnpm --filter @vezbot/database build && corepack pnpm --filter @vezbot/discord build && corepack pnpm --filter bot build",
-    "dashboard:build": "corepack pnpm db:generate && corepack pnpm --filter @vezbot/database build && corepack pnpm --filter dashboard build",
+    "dashboard:build": "corepack pnpm db:generate && corepack pnpm --filter @vezbot/shared build && corepack pnpm --filter @vezbot/database build && corepack pnpm --filter dashboard build",
     "start": "corepack pnpm --filter bot start",
     "dashboard:start": "corepack pnpm --filter dashboard start",
     "lint": "corepack pnpm --filter @vezbot/config build && corepack pnpm --filter @vezbot/shared build && corepack pnpm --filter @vezbot/database build && corepack pnpm --filter @vezbot/discord build && corepack pnpm --filter bot build && corepack pnpm --filter dashboard lint",

@@ -50,6 +50,9 @@ importers:
       '@vezbot/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@vezbot/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -161,7 +164,14 @@ importers:
         version: 5.9.3
 
   packages/shared:
+    dependencies:
+      luxon:
+        specifier: '3'
+        version: 3.7.2
     devDependencies:
+      '@types/luxon':
+        specifier: '3'
+        version: 3.7.6
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -568,6 +578,9 @@ packages:
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/luxon@3.7.6':
+    resolution: {integrity: sha512-6KSjliQAXK8ZLgFQO4B7iE4Rpf/B3rItzCFuXezBY/XIAGxOdLd7vRNK9/StRPwiS/yJsVbB7HKpW46B8tcEuQ==}
 
   '@types/node@22.19.15':
     resolution: {integrity: sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg==}
@@ -1677,6 +1690,10 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  luxon@3.7.2:
+    resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
+    engines: {node: '>=12'}
+
   magic-bytes.js@1.13.0:
     resolution: {integrity: sha512-afO2mnxW7GDTXMm5/AoN1WuOcdoKhtgXjIvHmobqTD1grNplhGdv3PFOyjCVmrnOZBIT/gD/koDKpYG+0mvHcg==}
 
@@ -2767,6 +2784,8 @@ snapshots:
     optional: true
 
   '@types/json5@0.0.29': {}
+
+  '@types/luxon@3.7.6': {}
 
   '@types/node@22.19.15':
     dependencies:
@@ -4069,6 +4088,8 @@ snapshots:
   lucide-react@0.511.0(react@18.3.1):
     dependencies:
       react: 18.3.1
+
+  luxon@3.7.2: {}
 
   magic-bytes.js@1.13.0: {}
 

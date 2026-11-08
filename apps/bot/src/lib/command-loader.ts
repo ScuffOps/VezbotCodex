@@ -2,7 +2,14 @@ import { readdirSync } from "fs";
 import { join } from "path";
 import { logger } from "@vezbot/discord";
 import type { BotClient } from "./client";
-import type { SlashCommand } from "@vezbot/shared";
+import type { SlashCommand } from "@vezbot/discord";
+
+function isRuntimeModuleFile(file: string): boolean {
+  return (
+    (file.endsWith(".ts") && !file.endsWith(".d.ts")) ||
+    file.endsWith(".js")
+  );
+}
 
 /**
  * Recursively load all command files from the commands/ directory.
@@ -18,9 +25,7 @@ export async function loadCommands(client: BotClient): Promise<void> {
 
   for (const category of categories) {
     const categoryDir = join(commandsDir, category);
-    const files = readdirSync(categoryDir).filter(
-      (file) => file.endsWith(".ts") || file.endsWith(".js")
-    );
+    const files = readdirSync(categoryDir).filter(isRuntimeModuleFile);
 
     for (const file of files) {
       try {
@@ -52,9 +57,7 @@ export async function loadEvents(client: BotClient): Promise<void> {
   const eventsDir = join(__dirname, "..", "events");
   let loaded = 0;
 
-  const files = readdirSync(eventsDir).filter(
-    (file) => file.endsWith(".ts") || file.endsWith(".js")
-  );
+  const files = readdirSync(eventsDir).filter(isRuntimeModuleFile);
 
   for (const file of files) {
     try {

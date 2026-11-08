@@ -195,11 +195,21 @@ model Reminder {
 
   // State
   sent      Boolean @default(false)
+  claimedAt DateTime? @map("claimed_at")
+  attempts  Int @default(0)
+  lastError String? @map("last_error")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([sent, remindAt])
   @@index([userId])
   @@map("reminders")
+}
+
+model UserPreference {
+  userId String @id @map("user_id")
+  timezone String @default("UTC")
+
+  @@map("user_preferences")
 }
 
 model ScheduledEvent {

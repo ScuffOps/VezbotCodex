@@ -79,7 +79,7 @@ export default async function RemindersPage({ params, searchParams }: PageProps)
               name="message"
               rows={4}
               className="input resize-none"
-              maxLength={2000}
+              maxLength={1800}
               placeholder="Don't forget tonight's launch check-in."
               required
             />
@@ -141,7 +141,9 @@ export default async function RemindersPage({ params, searchParams }: PageProps)
 
               <div className="grid gap-2 text-xs text-muted mb-4 md:grid-cols-3">
                 <p>Remind at: {formatDashboardDate(reminder.remindAt)}</p>
-                <p>Timezone: {reminder.timezone}</p>
+              <p>Timezone: {reminder.timezone}</p>
+              <p>Delivery attempts: {reminder.attempts}/5</p>
+              {reminder.lastError ? <p role="alert" className="text-error">{reminder.lastError}</p> : null}
                 <p>Channel: {reminder.channelId ?? 'DM/default'}</p>
               </div>
 

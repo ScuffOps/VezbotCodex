@@ -66,8 +66,10 @@ export default async function PollsPage({ params, searchParams }: PageProps) {
             <input id="channelId" name="channelId" type="text" className="input" placeholder="123456789012345678" inputMode="numeric" pattern="\d{17,20}" />
           </div>
           <div>
-            <label htmlFor="closesAt" className="block text-sm font-medium mb-2">Closes at (optional)</label>
+            <label htmlFor="closesAt" className="block text-sm font-medium mb-2">Closes at (optional, within 32 days)</label>
             <input id="closesAt" name="closesAt" type="datetime-local" className="input" />
+            <label htmlFor="timezone" className="block text-sm font-medium my-2">Timezone</label>
+            <input id="timezone" name="timezone" className="input" defaultValue="UTC" placeholder="America/Los_Angeles" />
           </div>
           <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface/60 px-4 py-4 cursor-pointer">
             <input type="checkbox" name="allowMulti" className="mt-1 h-4 w-4 accent-[var(--primary)]" />
@@ -77,10 +79,10 @@ export default async function PollsPage({ params, searchParams }: PageProps) {
             </span>
           </label>
           <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface/60 px-4 py-4 cursor-pointer">
-            <input type="checkbox" name="anonymous" className="mt-1 h-4 w-4 accent-[var(--primary)]" />
+            <input type="checkbox" name="anonymous" disabled className="mt-1 h-4 w-4 accent-[var(--primary)]" />
             <span>
               <span className="block font-medium">Anonymous</span>
-              <span className="block text-sm text-muted-foreground">Hide voter identities in downstream renderers.</span>
+              <span className="block text-sm text-muted-foreground">Unavailable for native Discord polls: voter identities are visible.</span>
             </span>
           </label>
         </div>
@@ -140,7 +142,7 @@ export default async function PollsPage({ params, searchParams }: PageProps) {
                   <form action={setPollStatusAction.bind(null, params.guildId)}>
                     <input type="hidden" name="pollId" value={poll.id} />
                     <input type="hidden" name="status" value="ACTIVE" />
-                    <button className="btn btn-secondary" type="submit">Set active</button>
+                    <SubmitButton className="btn btn-primary">Publish to Discord</SubmitButton>
                   </form>
                   <form action={setPollStatusAction.bind(null, params.guildId)}>
                     <input type="hidden" name="pollId" value={poll.id} />
@@ -210,7 +212,7 @@ function Notice({
 
     return (
       <div className="mb-6 rounded-2xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error animate-fade-in">
-        Invalid poll payload. Ensure at least two unique options and a future close date if set.
+        {error === 'publish_failed' ? 'Could not publish or close the Discord poll. Check the channel, bot permissions, 32-day limit, and use non-anonymous options of 55 characters or fewer.' : 'Invalid poll payload. Use at least two unique options of 55 characters or fewer and a valid future time.'}
       </div>
     );
   }

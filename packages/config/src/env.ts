@@ -22,11 +22,15 @@ const envSchema = z.object({
   // Optional — sensible defaults
   NODE_ENV: z.enum(["development", "production", "test"]).default("production"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  PORT: z.string().regex(/^\d+$/).default("3001"),
 
   // Dashboard-only (not required for bot)
   DISCORD_CLIENT_SECRET: z.string().optional(),
   NEXTAUTH_SECRET: z.string().optional(),
   NEXTAUTH_URL: z.string().url().optional(),
+
+  // Internal control plane
+  BOT_API_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

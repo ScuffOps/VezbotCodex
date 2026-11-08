@@ -1,3 +1,5 @@
+export type { SlashCommand } from "./types";
+
 export {
   createEmbed,
   successEmbed,
