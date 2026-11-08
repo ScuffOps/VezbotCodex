@@ -61,6 +61,7 @@ async function refreshDiscordAccessToken(token: JWT): Promise<JWT> {
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
+      issuer: "https://discord.com",
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       authorization: {
