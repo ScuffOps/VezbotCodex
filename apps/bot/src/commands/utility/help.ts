@@ -40,6 +40,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         inline: true,
       },
       {
+        name: "Scheduling and Polls",
+        value: "`/timezone set`\n`/reminder set`\n`/reminder list`\n`/poll create`",
+      },
+      {
         name: "Utility",
         value: [
           "`/ping`",

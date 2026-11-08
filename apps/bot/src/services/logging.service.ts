@@ -21,8 +21,8 @@ export async function sendLogEmbed(
   guildId: string,
   category: LogCategory,
   embed: EmbedBuilder
-): Promise<void> {
-  if (!_client) return;
+): Promise<boolean> {
+  if (!_client) return false;
 
   try {
     const config = await prisma.guildConfig.findUnique({
@@ -35,7 +35,7 @@ export async function sendLogEmbed(
       },
     });
 
-    if (!config?.loggingEnabled) return;
+    if (!config?.loggingEnabled) return false;
 
     // Route to category-specific channel, falling back to general log
     let channelId: string | null = null;
@@ -52,14 +52,16 @@ export async function sendLogEmbed(
         break;
     }
 
-    if (!channelId) return;
+    if (!channelId) return false;
 
-    const channel = _client.channels.cache.get(channelId) as TextChannel | undefined;
-    if (!channel) return;
+    const channel = await _client.channels.fetch(channelId).catch(() => null);
+    if (!channel || !channel.isSendable()) return false;
 
     await channel.send({ embeds: [embed] });
+    return true;
   } catch (error) {
     // Logging should never crash the bot
     log.warn({ error, guildId, category }, "Failed to send log embed");
+    return false;
   }
 }

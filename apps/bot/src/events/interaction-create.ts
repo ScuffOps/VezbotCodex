@@ -272,16 +272,19 @@ async function handleModal(interaction: ModalSubmitInteraction): Promise<void> {
         validated.data.evidence ? `**Evidence:** ${validated.data.evidence}` : "",
       ].filter(Boolean).join("\n"));
 
-      await sendLogEmbed(interaction.guild.id, "moderation", reportEmbed);
-
-      await interaction.reply({
+      await interaction.deferReply({ ephemeral: true });
+      const delivered = await sendLogEmbed(interaction.guild.id, "moderation", reportEmbed);
+      if (!delivered) {
+        await interaction.editReply({ embeds: [errorEmbed("Report Not Delivered", "Staff logging is unavailable. Please contact a moderator directly.")] });
+        break;
+      }
+      await interaction.editReply({
         embeds: [
           successEmbed(
             "Report Submitted",
             "Your report has been sent to the moderation team. Thank you for helping keep this community safe."
           ),
         ],
-        ephemeral: true,
       });
       break;
     }
@@ -309,16 +312,19 @@ async function handleModal(interaction: ModalSubmitInteraction): Promise<void> {
         `**Motivation:** ${motivation}`,
       ].join("\n"));
 
-      await sendLogEmbed(interaction.guild.id, "moderation", applicationEmbed);
-
-      await interaction.reply({
+      await interaction.deferReply({ ephemeral: true });
+      const delivered = await sendLogEmbed(interaction.guild.id, "moderation", applicationEmbed);
+      if (!delivered) {
+        await interaction.editReply({ embeds: [errorEmbed("Application Not Delivered", "Staff logging is unavailable. Please contact a moderator directly.")] });
+        break;
+      }
+      await interaction.editReply({
         embeds: [
           successEmbed(
             "Application Submitted",
             "Your moderator application has been sent to staff for review."
           ),
         ],
-        ephemeral: true,
       });
       break;
     }

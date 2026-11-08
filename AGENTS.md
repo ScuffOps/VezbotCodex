@@ -81,6 +81,6 @@ Load skills only when the task needs them.
 - Dashboard auth depends on the Discord OAuth callback URL matching `https://vezbotdashboard-production.up.railway.app/api/auth/callback/discord` or the current `NEXTAUTH_URL` equivalent.
 - Discord's OAuth provider must set `issuer: "https://discord.com"` to validate the `iss` callback parameter. Keep issuer validation enabled.
 - Discord guild lookups share a bounded, credential-isolated 30-second memory cache. Treat API failures separately from an empty server list; never suggest inviting the bot as a remedy for HTTP 429.
-- As of 2026-11-08, Railway's dashboard source is `ScuffOps/VezbotCodex` branch `codex/dashboard-recovery-20261108`. The default branch does not contain the dashboard; verify source contents before changing the deployment branch.
+- As of 2026-11-08, both Railway app services follow `ScuffOps/VezbotCodex` branch `codex/dashboard-recovery-20261108`. The default branch does not contain the dashboard; verify source contents before changing the deployment branch.
 - When using Playwright for live validation, keep the dashboard and Discord in separate tabs and prefer visible non-headless sessions.
 - When Discord shows `The application did not respond` but the bot health endpoint is healthy, compare the live failure with `railway logs --service VezbotCodex --since 10m`. If no interaction logs appear, treat it as Discord app routing or command registration drift before changing bot handlers.

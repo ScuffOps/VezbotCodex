@@ -1,5 +1,6 @@
 import { getGuildIconUrl } from '@/lib/discord';
 import { requireManageableGuildAccess } from '@/lib/dashboard-auth';
+import { getOrCreateDashboardGuildConfig } from '@/lib/dashboard-data';
 import { DashboardNav } from './nav';
 
 export default async function DashboardLayout({
@@ -10,6 +11,7 @@ export default async function DashboardLayout({
   params: { guildId: string };
 }) {
   const { guild } = await requireManageableGuildAccess(params.guildId);
+  await getOrCreateDashboardGuildConfig(params.guildId);
 
   return (
     <div className="min-h-screen flex">
