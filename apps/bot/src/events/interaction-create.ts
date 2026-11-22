@@ -23,6 +23,7 @@ import {
 } from "@vezbot/discord";
 import type { BotClient } from "../lib/client";
 import { createTicket, closeTicket } from "../services/ticket.service";
+import { VERIFY_BUTTON_ID, verifyMember } from "../services/member-verification.service";
 import { toggleRole } from "../services/role.service";
 import { sendLogEmbed } from "../services/logging.service";
 import { prisma } from "@vezbot/database";
@@ -113,6 +114,11 @@ async function handleCommand(interaction: ChatInputCommandInteraction): Promise<
 
 async function handleButton(interaction: ButtonInteraction): Promise<void> {
   const customId = interaction.customId;
+
+  if (customId === VERIFY_BUTTON_ID) {
+    await verifyMember(interaction);
+    return;
+  }
 
   // Role toggle buttons: role-toggle:{roleId}
   if (customId.startsWith("role-toggle:")) {

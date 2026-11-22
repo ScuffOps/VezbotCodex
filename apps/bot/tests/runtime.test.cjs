@@ -11,7 +11,7 @@ function loadService(name, prisma, extras = {}) {
   runInNewContext(readFileSync(join(__dirname, '../dist/services', `${name}.js`), 'utf8'), {
     exports, Date, Buffer, console,
     require: id => id === '@vezbot/database' ? { prisma }
-      : id === '@vezbot/discord' ? { createLogger: () => ({ info() {}, warn() {}, error() {} }) }
+      : id === '@vezbot/discord' ? { createLogger: () => ({ info() {}, warn() {}, error() {} }), logger: { warn() {} } }
       : id === './poll.service' ? { closeDuePolls: async () => {} } : require(id),
     ...extras,
   });
@@ -89,4 +89,61 @@ test('reminder delivery failure is recorded without marking the reminder sent', 
   assert.equal(changes.length, 1);
   assert.equal(changes[0].data.sent, undefined);
   assert.match(changes[0].data.lastError, /Delivery failed/);
+});
+
+test('verification only grants a permissionless role from the configured bot message', async () => {
+  const channelId = '123456789012345678';
+  const messageId = '123456789012345679';
+  const verifiedRoleId = '123456789012345680';
+  const config = JSON.stringify({ verificationChannelId: channelId, verificationMessageId: messageId, verifiedRoleId });
+  const { verifyMember } = loadService('member-verification.service', {
+    integrationConfig: { findUnique: async () => ({ enabled: true, config }) },
+  });
+  const grants = [];
+  const role = { id: verifiedRoleId, editable: true, permissions: { bitfield: 0n } };
+  const interaction = {
+    channelId,
+    message: { id: messageId, author: { id: 'bot' } },
+    client: { user: { id: 'bot' } },
+    user: { id: 'member' },
+    guild: {
+      id: 'guild',
+      roles: { fetch: async () => role },
+      members: { fetch: async () => ({ roles: { add: async value => grants.push(value.id) } }) },
+    },
+    deferReply: async () => {},
+    editReply: async () => {},
+  };
+  await verifyMember({ ...interaction, message: { ...interaction.message, id: 'wrong-message' } });
+  assert.deepEqual(grants, []);
+  await verifyMember(interaction);
+  assert.deepEqual(grants, [verifiedRoleId]);
+  role.permissions.bitfield = 8n;
+  await verifyMember(interaction);
+  assert.deepEqual(grants, [verifiedRoleId]);
+});
+
+test('configured reaction adds and removes only the matching alert role', async () => {
+  const changes = [];
+  const { setReactionRole } = loadService('reaction-role.service', {
+    integrationConfig: { findUnique: async () => ({ enabled: true, config: '{"channelId":"roles","messageId":"card"}' }) },
+    roleMenu: { findFirst: async ({ select }) => ({
+      options: select.options.where.emoji === '📺' ? [{ roleId: 'alert' }] : [],
+    }) },
+  });
+  const role = { id: 'alert', editable: true, permissions: { bitfield: 0n } };
+  const member = {
+    user: { bot: false },
+    roles: { add: async value => changes.push(['add', value.id]), remove: async value => changes.push(['remove', value.id]) },
+  };
+  const guild = { id: 'guild', roles: { fetch: async () => role }, members: { fetch: async () => member } };
+  const reaction = { emoji: { name: '📺' }, client: { user: { id: 'bot' } }, message: { guild, channelId: 'roles', id: 'card' } };
+  const user = { id: 'member' };
+  await setReactionRole('add', { ...reaction, emoji: { name: '❌' } }, user);
+  await setReactionRole('add', { ...reaction, message: { ...reaction.message, id: 'wrong-card' } }, user);
+  await setReactionRole('add', reaction, { id: 'bot', bot: true });
+  assert.deepEqual(changes, []);
+  await setReactionRole('add', reaction, user);
+  await setReactionRole('remove', reaction, user);
+  assert.deepEqual(changes, [['add', 'alert'], ['remove', 'alert']]);
 });

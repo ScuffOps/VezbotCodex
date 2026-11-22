@@ -18,6 +18,7 @@ export function createBotClient(): BotClient {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildModeration,
       GatewayIntentBits.MessageContent,
     ],
@@ -25,6 +26,8 @@ export function createBotClient(): BotClient {
       Partials.Channel,
       Partials.GuildMember,
       Partials.Message,
+      Partials.Reaction,
+      Partials.User,
     ],
   }) as BotClient;
 

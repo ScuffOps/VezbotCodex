@@ -31,6 +31,16 @@ export async function saveVerificationSettingsAction(guildId: string, formData: 
       redirect(`/dashboard/${guildId}/verification?error=invalid_reference`);
     }
 
+    const previous = await prisma.integrationConfig.findUnique({
+      where: { guildId_provider: { guildId, provider: 'verification' } },
+      select: { config: true },
+    });
+    const priorConfig: Record<string, unknown> = JSON.parse(previous?.config ?? '{}') ?? {};
+    const verificationMessageId = priorConfig.verificationChannelId === verificationChannelId
+      && typeof priorConfig.verificationMessageId === 'string'
+      ? priorConfig.verificationMessageId
+      : null;
+
     await prisma.integrationConfig.upsert({
       where: {
         guildId_provider: {
@@ -43,6 +53,7 @@ export async function saveVerificationSettingsAction(guildId: string, formData: 
         notifyChannelId: logChannelId,
         config: JSON.stringify({
           verificationChannelId,
+          verificationMessageId,
           verifiedRoleId,
           unverifiedRoleId,
           welcomeMessage,
@@ -55,6 +66,7 @@ export async function saveVerificationSettingsAction(guildId: string, formData: 
         notifyChannelId: logChannelId,
         config: JSON.stringify({
           verificationChannelId,
+          verificationMessageId,
           verifiedRoleId,
           unverifiedRoleId,
           welcomeMessage,
