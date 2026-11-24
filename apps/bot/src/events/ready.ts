@@ -13,13 +13,12 @@ export async function execute(client: BotClient): Promise<void> {
 
   try {
     if (!client.application) throw new Error("Discord application is unavailable");
-    for (const command of client.commands.values()) {
-      const payload = command.data.toJSON();
-      await client.application.commands.create(payload);
-      for (const guild of client.guilds.cache.values()) await guild.commands.create(payload);
-    }
+    // The runtime command definitions are the source of truth for this application's global commands.
+    const commands = client.commands.map(({ data }) => data.toJSON());
+    if (commands.length === 0) throw new Error("No slash commands loaded");
+    await client.application.commands.set(commands);
     client.commandsSynced = true;
-    logger.info({ commands: client.commands.size, guilds: client.guilds.cache.size }, "Slash commands synchronized");
+    logger.info({ commands: commands.length }, "Global slash commands synchronized");
   } catch (error) {
     logger.error({ error }, "Slash command sync failed; bot remains online, retry registration after correcting application permissions");
   }

@@ -1,8 +1,19 @@
-import { MessageFlags, type ButtonInteraction } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, type ButtonInteraction } from "discord.js";
 import { prisma } from "@vezbot/database";
 import { z } from "zod";
 
 export const VERIFY_BUTTON_ID = "member-verify";
+// Verification may grant ordinary member access. Exclude staff and server-management permissions.
+const memberPermissions =
+  PermissionFlagsBits.ViewChannel |
+  PermissionFlagsBits.ChangeNickname |
+  PermissionFlagsBits.SendMessages |
+  PermissionFlagsBits.SendMessagesInThreads |
+  PermissionFlagsBits.AddReactions |
+  PermissionFlagsBits.ReadMessageHistory |
+  PermissionFlagsBits.Connect |
+  PermissionFlagsBits.Speak;
+
 const snowflake = z.string().regex(/^\d{17,20}$/);
 const verificationSettings = z.object({
   verificationChannelId: snowflake,
@@ -30,7 +41,7 @@ export async function verifyMember(interaction: ButtonInteraction): Promise<void
   }
 
   const role = await guild.roles.fetch(settings.data.verifiedRoleId);
-  if (!role?.editable || role.id === guild.id || role.permissions.bitfield !== 0n) {
+  if (!role?.editable || role.id === guild.id || (role.permissions.bitfield & ~memberPermissions) !== 0n) {
     await interaction.editReply("I couldn’t grant the Verified role. Please let a moderator know.");
     return;
   }

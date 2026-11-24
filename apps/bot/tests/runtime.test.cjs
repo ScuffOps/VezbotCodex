@@ -4,7 +4,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { runInNewContext } = require('node:vm');
 const { parseSchedule } = require('@vezbot/shared');
-const { ChannelType } = require('discord.js');
+const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 function loadService(name, prisma, extras = {}) {
   const exports = {};
@@ -91,7 +91,7 @@ test('reminder delivery failure is recorded without marking the reminder sent', 
   assert.match(changes[0].data.lastError, /Delivery failed/);
 });
 
-test('verification only grants a permissionless role from the configured bot message', async () => {
+test('verification grants ordinary member permissions only from the configured bot message', async () => {
   const channelId = '123456789012345678';
   const messageId = '123456789012345679';
   const verifiedRoleId = '123456789012345680';
@@ -118,9 +118,12 @@ test('verification only grants a permissionless role from the configured bot mes
   assert.deepEqual(grants, []);
   await verifyMember(interaction);
   assert.deepEqual(grants, [verifiedRoleId]);
-  role.permissions.bitfield = 8n;
+  role.permissions.bitfield = PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.Connect;
   await verifyMember(interaction);
-  assert.deepEqual(grants, [verifiedRoleId]);
+  assert.deepEqual(grants, [verifiedRoleId, verifiedRoleId]);
+  role.permissions.bitfield |= PermissionFlagsBits.Administrator;
+  await verifyMember(interaction);
+  assert.deepEqual(grants, [verifiedRoleId, verifiedRoleId]);
 });
 
 test('configured reaction adds and removes only the matching alert role', async () => {
